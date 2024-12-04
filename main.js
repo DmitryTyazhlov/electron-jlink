@@ -1,9 +1,7 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
-const path = require('path')
-const jlinkModule = require('@connectedyard/node-jlink')
-
-// Установим путь к JLinkExe
-jlinkModule.setJlinkEXECommand('/usr/local/bin/JLinkExe');
+const electron = require('electron');
+const { app, BrowserWindow, ipcMain } = electron;
+const path = require('path');
+const jlinkModule = require('@connectedyard/node-jlink');
 
 let mainWindow = null;
 let jlink = null;
@@ -20,21 +18,25 @@ const createWindow = () => {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
     },
-    title: 'JFlash Lite'
+    title: 'Electron JLink'
   })
 
   mainWindow.loadFile('index.html')
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 }
 
 const setupIPC = () => {
   ipcMain.handle('jlink:eraseAll', async (event, device) => {
     try {
       console.log('Using JLink for device:', device);
+      
       if (!jlink) {
+        if (!await jlinkModule.isJLinkEXEInstalled()) {
+          throw new Error('JLink software is not installed. Please install JLink software from SEGGER website.');
+        }
         jlink = jlinkModule;
       }
-
+      
       // Установим опции для J-Link
       await jlink.setJLinkEXEOptions([
         '-device', device,
@@ -42,11 +44,11 @@ const setupIPC = () => {
         '-if', 'SWD',
         '-autoconnect', '1'
       ]);
-
+      
       console.log('Erasing device...');
       await jlink.eraseAll();
       console.log('Erase completed');
-
+      
       return { success: true, message: `Successfully erased ${device}` };
     } catch (error) {
       console.error('Error in jlink:eraseAll:', error);
@@ -57,10 +59,14 @@ const setupIPC = () => {
   ipcMain.handle('jlink:program', async (event, { device, filePath }) => {
     try {
       console.log('Using JLink for device:', device);
+      
       if (!jlink) {
+        if (!await jlinkModule.isJLinkEXEInstalled()) {
+          throw new Error('JLink software is not installed. Please install JLink software from SEGGER website.');
+        }
         jlink = jlinkModule;
       }
-
+      
       // Установим опции для J-Link
       await jlink.setJLinkEXEOptions([
         '-device', device,
@@ -68,11 +74,11 @@ const setupIPC = () => {
         '-if', 'SWD',
         '-autoconnect', '1'
       ]);
-
+      
       console.log('Programming device with file:', filePath);
       await jlink.program(filePath);
       console.log('Programming completed');
-
+      
       return { success: true, message: `Successfully programmed ${device}` };
     } catch (error) {
       console.error('Error in jlink:program:', error);
@@ -81,19 +87,19 @@ const setupIPC = () => {
   });
 }
 
-app.whenReady().then(() => {
+electron.app.whenReady().then(() => {
   setupIPC();
   createWindow();
 
-  app.on('activate', () => {
+  electron.app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
 });
 
-app.on('window-all-closed', () => {
+electron.app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    app.quit();
+    electron.app.quit();
   }
 });
