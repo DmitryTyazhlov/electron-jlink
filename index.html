@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Electron JLink</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        select, input[type="file"] {
+            width: 100%;
+            padding: 5px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: white;
+        }
+
+        .buttons-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 8px 20px;
+            font-size: 14px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #f5f5f5;
+        }
+
+        .output-container {
+            flex: 1;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-y: auto;
+        }
+
+        #selected-file {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-group">
+        <label class="form-label">Device</label>
+        <select id="device-select">
+            <option selected disabled>Choose MCU</option>
+            <option value="GD32F330K8">GD32F330K8</option>
+            <option value="GD32F350K8">GD32F350K8</option>
+            <option value="GD32F450VG">GD32F450VG</option>
+            <option value="GD32F450VI">GD32F450VI</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">Firmware</label>
+        <input type="file" accept=".hex" id="firmware-file" />
+        <div id="selected-file"></div>
+    </div>
+
+    <div class="buttons-container">
+        <button id="erase-btn">Erase</button>
+        <button id="flash-btn">Flash</button>
+    </div>
+
+    <div class="output-container" id="output">
+        Ready
+    </div>
+
+    <script>
+        // Handle file selection
+        document.getElementById('firmware-file').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name || 'No file selected';
+            document.getElementById('selected-file').textContent = fileName;
+        });
+
+        function appendToOutput(message) {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `\n[${timestamp}] ${message}`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        // Handle Erase button
+        document.getElementById('erase-btn').addEventListener('click', async function() {
+            const device = document.getElementById('device-select').value;
+            const btn = this;
+            
+            try {
+                btn.disabled = true;
+                appendToOutput(`Erasing ${device}...`);
+                
+                const result = await window.jlink.eraseDevice(device);
+                appendToOutput(result.message);
+            } catch (error) {
+                appendToOutput(`Error: ${error.message}`);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // Handle Flash button
+        document.getElementById('flash-btn').addEventListener('click', async function() {
+            const device = document.getElementById('device-select').value;
+            const fileInput = document.getElementById('firmware-file');
+            const btn = this;
+            
+            if (!fileInput.files.length) {
+                appendToOutput('Error: No firmware file selected');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                const filePath = fileInput.files[0].path;
+                appendToOutput(`Flashing ${device} with ${fileInput.files[0].name}...`);
+                
+                const result = await window.jlink.flashDevice(device, filePath);
+                appendToOutput(result.message);
+            } catch (error) {
+                appendToOutput(`Error: ${error.message}`);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
