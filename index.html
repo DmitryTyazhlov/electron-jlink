@@ -115,7 +115,15 @@
         function appendToOutput(message) {
             const output = document.getElementById('output');
             const timestamp = new Date().toLocaleTimeString();
-            output.textContent += `\n[${timestamp}] ${message}`;
+            
+            // Заменяем слова на span с нужным цветом
+            const coloredMessage = message
+                .replace(/Error/g, '<span style="color: red">Error</span>')
+                .replace(/Successfully/g, '<span style="color: green">Successfully</span>');
+            
+            const newLine = document.createElement('div');
+            newLine.innerHTML = `[${timestamp}] ${coloredMessage}`;
+            output.appendChild(newLine);
             output.scrollTop = output.scrollHeight;
         }
 
