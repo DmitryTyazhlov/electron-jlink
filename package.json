@@ -39,7 +39,7 @@
           "arch": ["arm64"]
         }
       ],
-      "icon": "build/icon.icns",
+      "icon": "./assets/icon.icns",
       "category": "public.app-category.developer-tools",
       "darkModeSupport": true,
       "hardenedRuntime": true,
@@ -58,7 +58,7 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "build/icon.ico"
+      "icon": ".\\assets\\icon.ico"
     },
     "nsis": {
       "oneClick": false,
