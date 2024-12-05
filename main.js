@@ -22,12 +22,15 @@ const createWindow = () => {
   })
 
   mainWindow.loadFile('index.html')
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
 }
 
 const setupIPC = () => {
   ipcMain.handle('jlink:eraseAll', async (event, device) => {
     try {
+      if (device === "No selected") {
+        return { success: false, message: 'Error: No device selected' };
+      }
       console.log('Using JLink for device:', device);
       
       if (!jlink) {
@@ -58,6 +61,9 @@ const setupIPC = () => {
 
   ipcMain.handle('jlink:program', async (event, { device, filePath }) => {
     try {
+      if (device === "No selected") {
+        return { success: false, message: 'Error: No device selected' };
+      }
       console.log('Using JLink for device:', device);
       
       if (!jlink) {
