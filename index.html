@@ -77,6 +77,50 @@
             font-size: 12px;
             color: #666;
         }
+
+        .connection-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .ip-input {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            margin-left: 10px;
+        }
+
+        .number-input {
+            width: 40px;
+            text-align: center;
+            padding: 2px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        .remote-input {
+            width: 100px;
+            padding: 2px;
+            margin-left: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        input[type="radio"] {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -89,6 +133,28 @@
             <option value="GD32F450VG">GD32F450VG</option>
             <option value="GD32F450VI">GD32F450VI</option>
         </select>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">Connection</label>
+        <div class="connection-options">
+            <label class="radio-label">
+                <input type="radio" name="connection" value="usb" checked>
+                USB
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="connection" value="local">
+                Local
+                <div class="ip-input">
+                    192.168.<input type="text" maxlength="3" class="number-input" pattern="[0-9]{1,3}">.<input type="text" maxlength="3" class="number-input" pattern="[0-9]{1,3}">
+                </div>
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="connection" value="remote">
+                Remote
+                <input type="text" maxlength="8" class="remote-input" pattern="[0-9]{8}">
+            </label>
+        </div>
     </div>
 
     <div class="form-group">
@@ -127,6 +193,23 @@
             output.scrollTop = output.scrollHeight;
         }
 
+        // Функция для получения параметров подключения
+        function getConnectionParams() {
+            const connectionType = document.querySelector('input[name="connection"]:checked').value;
+            const params = { type: connectionType };
+            
+            if (connectionType === 'local') {
+                const inputs = document.querySelectorAll('.number-input');
+                const ip3 = inputs[0].value || '0';
+                const ip4 = inputs[1].value || '0';
+                params.ip = `192.168.${ip3}.${ip4}`;
+            } else if (connectionType === 'remote') {
+                params.remoteId = document.querySelector('.remote-input').value;
+            }
+            
+            return params;
+        }
+
         // Handle Erase button
         document.getElementById('erase-btn').addEventListener('click', async function() {
             const device = document.getElementById('device-select').value;
@@ -136,7 +219,7 @@
                 btn.disabled = true;
                 appendToOutput(`Erasing ${device}...`);
                 
-                const result = await window.jlink.eraseDevice(device);
+                const result = await window.jlink.eraseDevice(device, getConnectionParams());
                 appendToOutput(result.message);
             } catch (error) {
                 appendToOutput(`Error: ${error.message}`);
@@ -161,7 +244,7 @@
                 const filePath = fileInput.files[0].path;
                 appendToOutput(`Flashing ${device} with ${fileInput.files[0].name}...`);
                 
-                const result = await window.jlink.flashDevice(device, filePath);
+                const result = await window.jlink.flashDevice(device, filePath, getConnectionParams());
                 appendToOutput(result.message);
             } catch (error) {
                 appendToOutput(`Error: ${error.message}`);
@@ -169,6 +252,38 @@
                 btn.disabled = false;
             }
         });
+
+        // Управление полями ввода IP и Remote ID
+        document.querySelectorAll('.number-input, .remote-input').forEach(input => {
+            input.addEventListener('input', function() {
+                // Убираем все нецифровые символы
+                this.value = this.value.replace(/\D/g, '');
+                
+                // Проверяем, что число не превышает 255 для IP
+                if (this.classList.contains('number-input') && this.value > 255) {
+                    this.value = '255';
+                }
+            });
+        });
+
+        // Включение/отключение полей ввода в зависимости от выбранного типа подключения
+        document.querySelectorAll('input[name="connection"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const localInputs = document.querySelectorAll('.number-input');
+                const remoteInput = document.querySelector('.remote-input');
+
+                localInputs.forEach(input => {
+                    input.disabled = this.value !== 'local';
+                    if (this.value !== 'local') input.value = '';
+                });
+
+                remoteInput.disabled = this.value !== 'remote';
+                if (this.value !== 'remote') remoteInput.value = '';
+            });
+        });
+
+        // Инициализация состояния полей
+        document.querySelector('input[name="connection"][value="usb"]').dispatchEvent(new Event('change'));
     </script>
 </body>
 </html>

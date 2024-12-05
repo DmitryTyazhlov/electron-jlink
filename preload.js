@@ -4,13 +4,13 @@ const { contextBridge, ipcRenderer } = require('electron')
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld(
     'jlink', {
-        eraseDevice: (device) => {
-            console.log('Calling eraseDevice with device:', device);
-            return ipcRenderer.invoke('jlink:eraseAll', device);
+        eraseDevice: (device, connection) => {
+            console.log('Calling eraseDevice with:', device, connection);
+            return ipcRenderer.invoke('jlink:eraseAll', { device, connection });
         },
-        flashDevice: (device, filePath) => {
-            console.log('Calling flashDevice with:', device, filePath);
-            return ipcRenderer.invoke('jlink:program', { device, filePath });
+        flashDevice: (device, filePath, connection) => {
+            console.log('Calling flashDevice with:', device, filePath, connection);
+            return ipcRenderer.invoke('jlink:program', { device, filePath, connection });
         },
         listDevices: () => {
             return ipcRenderer.invoke('jlink:list-devices');
